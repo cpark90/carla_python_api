@@ -1,0 +1,51 @@
+load("@rules_python//python:defs.bzl", "py_library", "py_binary")
+load("@python_deps//:requirements.bzl", "requirement")
+load("@io_bazel_rules_docker//lang:image.bzl", container_image = "app_layer")
+
+package(default_visibility = ["//visibility:public"])
+
+
+filegroup(
+    name = "srcs",
+    srcs = glob(["PythonAPI/carla/*.py"]) +
+        glob(["PythonAPI/carla/agents/*.py"]) +
+        glob(["PythonAPI/carla/agents/navigation/*.py"]) +
+        glob(["PythonAPI/carla/agents/tools/*.py"]) +
+        glob(["PythonAPI/carla/source/carla/*.py"])
+)
+
+filegroup(
+    name = "dist",
+    srcs = glob(["PythonAPI/carla/dist/*.egg"])
+)
+
+
+py_library(
+    name = "PythonAPI",
+    srcs = [
+        ":srcs",
+    ],
+    deps = [
+    ]
+)
+
+
+py_binary(
+    name = "automatic_control",
+    srcs = glob(["PythonAPI/examples/automatic_control.py"]),
+    deps = [
+        requirement("pygame"),
+        requirement("numpy"),
+        requirement("shapely"),
+        requirement("networkx"),
+        ":PythonAPI",
+    ],
+    data = [":dist"],
+)
+
+container_image(
+    name = "automatic_control_image",
+    base = "@carla-python-api-deploy-base//image",
+    binary = ":automatic_control",
+    docker_run_flags = "-it --rm --network=host --runtime=nvidia",
+)
